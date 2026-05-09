@@ -3,7 +3,7 @@
 An interactive, data-driven dashboard curated for a **rising 7th-grade student**. This application synthesizes research on high-engagement summer programs in the Seattle Eastside area (**Redmond, Bellevue, and Bothell**), specifically targeting coding, math, engineering, and physical logic.
 
 ## 🚀 Live Application
-[View the Interactive Dashboard](#)
+[View the Interactive Dashboard](https://gauravbi.github.io/summer-research/)
 
 ---
 
