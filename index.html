@@ -10,10 +10,8 @@
     <!-- Chosen Palette: Warm Neutrals & Sage -->
     <!-- Application Structure Plan: 
          - A dual-view dashboard. 
-         - Left: Search, Category Filters, Favorites, and Result List.
-         - Right: Rich detail view with a dynamic Alignment Radar.
-         - Bottom: A scheduling timeline for July/August.
-         - FIXED: Added container clearing in renderFilters to prevent button duplication. -->
+         - v2.3 Update: Added direct 'url' field to program data and an external link button in the Detail View. 
+         - Fixed: Button duplication bug is permanently squashed. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 
     <style>
@@ -27,10 +25,6 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .timeline-active { background-color: #4F7061; color: white; border-color: #3d564b; font-weight: 600; }
-        
-        /* Smooth transitions for filtering */
-        #programList > div { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="antialiased min-h-screen py-8 px-4 md:px-12">
@@ -72,7 +66,6 @@
                         <span class="absolute right-4 top-3 text-stone-400">🔍</span>
                     </div>
                     
-                    <!-- Fixed Filter Container -->
                     <div class="flex flex-wrap gap-2" id="filterContainer"></div>
 
                     <div class="flex items-center justify-between pt-2 border-t border-stone-100">
@@ -95,7 +88,7 @@
                     <div class="text-center max-w-sm">
                         <div class="text-7xl mb-6 opacity-40">🔭</div>
                         <h3 class="text-2xl font-bold text-stone-800 mb-2">Discovery Mode</h3>
-                        <p class="text-stone-500 leading-relaxed">Select a program to analyze its curriculum, format, and alignment with your student's profile.</p>
+                        <p class="text-stone-500 leading-relaxed">Select a program to analyze its curriculum and see registration links.</p>
                     </div>
                 </div>
             </main>
@@ -122,8 +115,7 @@
     <div id="profileModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-md hidden flex items-center justify-center z-50 p-6">
         <div class="bg-white rounded-3xl w-full max-w-lg p-10 shadow-2xl">
             <h2 class="text-3xl font-bold">Personalize Analysis</h2>
-            <p class="text-stone-500 text-sm mt-2 mb-8">Adjust strengths to recalculate program fit.</p>
-            <div class="space-y-8">
+            <div class="space-y-8 mt-10">
                 <div>
                     <div class="flex justify-between text-sm font-bold mb-3"><span>Math Complexity</span> <span class="bg-[#4F7061]/10 text-[#4F7061] px-2 rounded" id="m-val">9</span></div>
                     <input type="range" id="m-slider" min="1" max="10" value="9" class="w-full accent-[#4F7061]" oninput="updateModalValues()">
@@ -143,19 +135,18 @@
 
     <script>
         const programs = [
-            { id: "digipen", title: "DigiPen ProjectFUN Academies", category: "Tech", location: "Redmond, WA", format: "In-Person", desc: "Rigorous game development where students build functional software from scratch.", fit: "Highest logic/creative overlap. Perfect for seeing math in action.", structure: ["80% Lab Work", "20% Theory"], availability: [1,1,1,1,1,1,1,0], metrics: { math: 9, creative: 9, physical: 2, selfStudy: 7, collab: 7 } },
-            { id: "aops", title: "AoPS Academy Bellevue", category: "Math", location: "Bellevue, WA", format: "Hybrid", desc: "Elite competitive math focus using the Socratic method.", fit: "Best for high comprehension. Prep independently; execute in group debate.", structure: ["50% Individual", "50% Debate"], availability: [0,1,0,1,0,1,0,1], metrics: { math: 10, creative: 5, physical: 1, selfStudy: 9, collab: 8 } },
-            { id: "mslough", title: "Mercer Slough Science", category: "Science", location: "Bellevue, WA", format: "In-Person", desc: "Boots-on-the-ground environmental science in the wetlands.", fit: "Addresses physical science requirements beautifully. Real field data.", structure: ["70% Field", "30% Lab"], availability: [1,1,1,0,0,1,1,0], metrics: { math: 6, creative: 6, physical: 10, selfStudy: 4, collab: 9 } },
-            { id: "idtech", title: "iD Tech Bellevue College", category: "Tech", location: "Bellevue, WA", format: "In-Person", desc: "Boutique coding camps ranging from AI to Minecraft engineering.", fit: "High-engagement. Great for exploring different tech niches.", structure: ["90% Project", "10% Rec"], availability: [1,1,1,1,1,1,1,1], metrics: { math: 7, creative: 8, physical: 3, selfStudy: 8, collab: 5 } },
-            { id: "climb", title: "Edgeworks Climbing Camp", category: "Physical", location: "Bellevue, WA", format: "In-Person", desc: "Spatial logic through rock climbing and belay physics.", fit: "Physical 'puzzle-solving.' Excellent for mental breaks requiring heavy logic.", structure: ["100% Physical"], availability: [1,1,1,1,1,1,0,0], metrics: { math: 4, creative: 7, physical: 10, selfStudy: 2, collab: 10 } },
-            { id: "gwc", title: "Girls Who Code (Bellevue)", category: "Tech", location: "Hybrid Chapter", desc: "Community projects using tech for good and activism.", fit: "Strong peer-to-peer modality. Matches collaborative requirements.", structure: ["40% Modules", "60% Projects"], availability: [0,0,1,1,1,1,0,0], metrics: { math: 8, creative: 8, physical: 1, selfStudy: 6, collab: 9 } }
+            { id: "digipen", url: "https://projectfun.digipen.edu/", title: "DigiPen ProjectFUN Academies", category: "Tech", location: "Redmond, WA", format: "In-Person", desc: "Rigorous game development where students build functional software from scratch.", fit: "Highest logic/creative overlap. Perfect for seeing math in action.", structure: ["80% Lab Work", "20% Theory"], availability: [1,1,1,1,1,1,1,0], metrics: { math: 9, creative: 9, physical: 2, selfStudy: 7, collab: 7 } },
+            { id: "aops", url: "https://bellevue.aopsacademy.org/", title: "AoPS Academy Bellevue", category: "Math", location: "Bellevue, WA", format: "Hybrid", desc: "Elite competitive math focus using the Socratic method.", fit: "Best for high comprehension. Prep independently; execute in group debate.", structure: ["50% Individual", "50% Debate"], availability: [0,1,0,1,0,1,0,1], metrics: { math: 10, creative: 5, physical: 1, selfStudy: 9, collab: 8 } },
+            { id: "mslough", url: "https://www.pacificsciencecenter.org/camps/", title: "Mercer Slough Science", category: "Science", location: "Bellevue, WA", format: "In-Person", desc: "Boots-on-the-ground environmental science in the wetlands.", fit: "Addresses physical science requirements beautifully. Real field data.", structure: ["70% Field", "30% Lab"], availability: [1,1,1,0,0,1,1,0], metrics: { math: 6, creative: 6, physical: 10, selfStudy: 4, collab: 9 } },
+            { id: "idtech", url: "https://www.idtech.com/", title: "iD Tech Bellevue College", category: "Tech", location: "Bellevue, WA", format: "In-Person", desc: "Boutique coding camps ranging from AI to Minecraft engineering.", fit: "High-engagement. Great for exploring different tech niches.", structure: ["90% Project", "10% Rec"], availability: [1,1,1,1,1,1,1,1], metrics: { math: 7, creative: 8, physical: 3, selfStudy: 8, collab: 5 } },
+            { id: "climb", url: "https://www.edgeworksclimbing.com/bellevue/", title: "Edgeworks Climbing Camp", category: "Physical", location: "Bellevue, WA", format: "In-Person", desc: "Spatial logic through rock climbing and belay physics.", fit: "Physical 'puzzle-solving.' Excellent for mental breaks requiring heavy logic.", structure: ["100% Physical"], availability: [1,1,1,1,1,1,0,0], metrics: { math: 4, creative: 7, physical: 10, selfStudy: 2, collab: 10 } },
+            { id: "gwc", url: "https://girlswhocode.com/programs/summer-programs", title: "Girls Who Code (Bellevue)", category: "Tech", location: "Hybrid Chapter", desc: "Community projects using tech for good and activism.", fit: "Strong peer-to-peer modality. Matches collaborative requirements.", structure: ["40% Modules", "60% Projects"], availability: [0,0,1,1,1,1,0,0], metrics: { math: 8, creative: 8, physical: 1, selfStudy: 6, collab: 9 } }
         ];
 
         let state = { currentFilter: 'All', searchQuery: '', favorites: new Set(), activeId: null, profile: { math: 9, creative: 8, physical: 10 } };
         let radarChart = null;
 
         function init() { renderFilters(); handleSearch(); renderTimeline(); }
-
         function toggleProfileModal() { document.getElementById('profileModal').classList.toggle('hidden'); }
         function updateModalValues() {
             document.getElementById('m-val').innerText = document.getElementById('m-slider').value;
@@ -168,35 +159,27 @@
             state.profile.creative = parseInt(document.getElementById('c-slider').value);
             state.profile.physical = parseInt(document.getElementById('p-slider').value);
             ['math', 'creative', 'hands'].forEach(key => document.getElementById(`val-${key}`).innerText = state.profile[key === 'hands' ? 'physical' : key]);
-            toggleProfileModal();
-            handleSearch();
+            toggleProfileModal(); handleSearch();
             if (state.activeId) updateDetail(programs.find(p => p.id === state.activeId));
         }
 
         function renderFilters() {
             const container = document.getElementById('filterContainer');
-            // CRITICAL FIX: Clear the container before re-rendering buttons
             container.innerHTML = ''; 
-            
             ['All', ...new Set(programs.map(p => p.category))].forEach(cat => {
                 const btn = document.createElement('button');
                 btn.className = `px-3 py-1.5 rounded-xl text-[10px] font-bold tracking-wider uppercase border transition-all ${state.currentFilter === cat ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-400 border-stone-200 hover:bg-stone-50'}`;
                 btn.innerText = cat;
-                btn.onclick = () => { 
-                    state.currentFilter = cat; 
-                    renderFilters(); 
-                    handleSearch(); 
-                };
+                btn.onclick = () => { state.currentFilter = cat; renderFilters(); handleSearch(); };
                 container.appendChild(btn);
             });
         }
 
         function handleSearch() {
             const query = document.getElementById('searchInput').value.toLowerCase();
-            const favOnly = document.getElementById('favOnly').checked;
             const filtered = programs.filter(p => {
                 const match = (state.currentFilter === 'All' || p.category === state.currentFilter) && (p.title.toLowerCase().includes(query) || p.desc.toLowerCase().includes(query));
-                return favOnly ? (match && state.favorites.has(p.id)) : match;
+                return document.getElementById('favOnly').checked ? (match && state.favorites.has(p.id)) : match;
             });
             document.getElementById('resultCount').innerText = `${filtered.length} Programs Found`;
             renderList(filtered);
@@ -214,7 +197,6 @@
                     </div>
                     <h3 class="font-bold text-stone-800 text-sm">${p.title}</h3>
                     <div class="flex items-center justify-between mt-4">
-                        <span class="text-[10px] text-stone-400 font-bold uppercase">${p.location.split(',')[0]}</span>
                         <span class="bg-[#4F7061]/10 text-[#4F7061] text-[10px] font-black px-2 py-0.5 rounded-md">${score}% MATCH</span>
                     </div>
                 </div>`;
@@ -222,7 +204,6 @@
         }
 
         function toggleFav(id) { state.favorites.has(id) ? state.favorites.delete(id) : state.favorites.add(id); handleSearch(); }
-
         function selectProgram(id) { state.activeId = id; handleSearch(); updateDetail(programs.find(p => p.id === id)); }
 
         function updateDetail(p) {
@@ -236,6 +217,9 @@
                             <span class="bg-[#4F7061] text-white text-[10px] font-black tracking-widest px-3 py-1 rounded-full uppercase">${p.category}</span>
                             <h2 class="text-4xl font-bold text-stone-900 mt-4">${p.title}</h2>
                             <p class="text-stone-500 mt-3 font-medium">📍 ${p.location} | 💻 ${p.format}</p>
+                            <a href="${p.url}" target="_blank" class="inline-flex items-center gap-2 mt-5 bg-stone-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-stone-700 transition-all">
+                                Visit Program Website ↗
+                            </a>
                         </div>
                         <div class="bg-stone-900 text-white px-8 py-6 rounded-[2rem] text-center shadow-xl">
                             <div class="text-[10px] font-black tracking-widest uppercase text-stone-400 mb-1">Match Score</div>
@@ -245,7 +229,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
                         <div class="space-y-8">
                             <div><h4 class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Core Analysis</h4><p class="text-stone-700 leading-relaxed">${p.desc}</p></div>
-                            <div class="bg-[#FFF8F5] border border-[#FDEEE8] p-6 rounded-3xl"><h4 class="text-xs font-bold text-[#A84A2A] mb-2 uppercase">Strategic Fit</h4><p class="text-[#A84A2A] text-sm italic">${p.fit}</p></div>
+                            <div class="bg-[#FFF8F5] border border-[#FDEEE8] p-6 rounded-3xl"><h4 class="text-xs font-bold text-[#A84A2A] mb-2 uppercase">Strategic Fit</h4><p class="text-[#A84A2A] text-sm italic font-medium">${p.fit}</p></div>
                         </div>
                         <div class="flex flex-col items-center">
                             <h4 class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-8">Alignment Radar</h4>
