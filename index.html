@@ -3,554 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Summer Development Programs: Seattle Eastside</title>
+    <title>Summer Discovery Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Chosen Palette: Warm Neutrals & Sage (Stone-50 background, Sage-700 primary, Terracotta-500 accents) -->
-    <!-- Application Structure Plan: A dashboard layout to balance high-level overview with deep-dive exploration. 
-         1. Header: Contextualizes the persona and goals.
-         2. Overview Section: Uses a doughnut chart to show the distribution of program types.
-         3. Explorer Section: A filterable list of programs to allow the user to browse by category.
-         4. Detail View: Clicking a program updates this section with qualitative details and a dynamic radar chart comparing the program against the student's key strengths and desired learning modalities (Self-study vs Collab). This structure minimizes cognitive overload while providing rich, specific data on demand. -->
+    <!-- Chosen Palette: Warm Neutrals & Sage -->
+    <!-- Application Structure Plan: 
+         - A dual-view dashboard. 
+         - Left pane: Search, Category Filters, Favorites, and Result List.
+         - Right pane: Rich detail view with a dynamic Alignment Radar.
+         - Bottom: A scheduling timeline for July/August.
+         - Interactive: Users can 'star' favorites and adjust the student profile to recalculate match scores. -->
     <!-- Visualization & Content Choices: 
-         - Overview -> Goal: Show variety -> Viz: Doughnut Chart (Chart.js) -> Interaction: Hover for stats -> Justification: Quickly communicates balance of options.
-         - Program List -> Goal: Organize & Filter -> Viz: Interactive List -> Interaction: Click to select, Filter buttons -> Justification: Allows user-driven exploration based on current interest (e.g., just looking at 'Physical' today).
-         - Program Details -> Goal: Deep Dive & Compare -> Viz: Radar Chart (Chart.js) + Dynamic Text -> Interaction: Updates on selection -> Justification: A radar chart perfectly maps a program's attributes (Math, Creativity, Hands-on, Self-study) against the student's multifaceted profile. 
-         - Confirming NO SVG/Mermaid used. Layout powered by CSS/Tailwind. Icons via Unicode. -->
+         - Radar Chart: Compares Program attributes vs. Student weights.
+         - Alignment Score: A calculated percentage based on the user's defined profile.
+         - Timeline: A weekly grid showing session windows for July/August. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #FAFAF9; /* stone-50 */
-            color: #292524; /* stone-800 */
-        }
-
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 300px;
-            max-height: 350px;
-        }
-
-        @media (min-width: 768px) {
-            .chart-container.large-chart {
-                height: 400px;
-                max-width: 600px;
-            }
-        }
-
-        .program-card {
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-        }
-        
-        .program-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-color: #4F7061; /* sage highlight */
-        }
-        
-        .program-card.active {
-            border-left: 4px solid #4F7061;
-            background-color: #F0F4F2;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1; 
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1; 
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8; 
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #FAFAF9; color: #292524; }
+        .chart-container { position: relative; width: 100%; max-width: 450px; margin: auto; height: 300px; }
+        .program-card { transition: all 0.2s ease-in-out; cursor: pointer; }
+        .program-card:hover { transform: translateY(-2px); border-color: #4F7061; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .program-card.active { border-left: 4px solid #4F7061; background-color: #F0F4F2; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .timeline-active { background-color: #4F7061; color: white; border-color: #3d564b; font-weight: 600; }
     </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col items-center py-8 px-4 sm:px-8">
+<body class="antialiased min-h-screen py-8 px-4 md:px-12">
 
-    <div class="max-w-7xl w-full flex flex-col gap-8">
+    <div class="max-w-7xl mx-auto flex flex-col gap-8">
         
-        <!-- Header Section -->
-        <header class="bg-white rounded-2xl p-8 shadow-sm border border-stone-200">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <!-- HEADER & PROFILE SUMMARY -->
+        <header class="bg-white rounded-3xl p-8 shadow-sm border border-stone-200 flex flex-col lg:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-5">
+                <div class="bg-stone-800 text-white w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl shadow-lg shadow-stone-200">S</div>
                 <div>
-                    <h1 class="text-3xl font-bold text-stone-900 mb-2">Summer Program Research Portfolio</h1>
-                    <p class="text-stone-600 max-w-2xl leading-relaxed">
-                        Curated July/August development programs for a rising 7th-grade girl in the Seattle Eastside area (Redmond/Bellevue). 
-                        Focusing on hands-on engagement, leveraging strengths in math/science/creativity, and balancing collaborative group work with independent self-study.
-                    </p>
+                    <h1 class="text-3xl font-bold tracking-tight">Summer Discovery</h1>
+                    <p class="text-stone-500 font-medium">Personalized Research • Rising 7th Grade • Seattle Eastside</p>
                 </div>
-                <div class="bg-stone-100 rounded-lg p-4 border border-stone-200 text-sm flex flex-col gap-2 min-w-[250px]">
-                    <div class="font-semibold text-stone-800 border-b border-stone-200 pb-1 mb-1">Student Profile</div>
-                    <div class="flex justify-between"><span>Grade:</span> <span class="font-medium">Rising 7th</span></div>
-                    <div class="flex justify-between"><span>Location:</span> <span class="font-medium">Seattle Eastside</span></div>
-                    <div class="flex justify-between"><span>Strengths:</span> <span class="font-medium text-[#c05634]">Math, Creative, Science</span></div>
-                    <div class="flex justify-between"><span>Format Preference:</span> <span class="font-medium">Hybrid / Local Collab</span></div>
+            </div>
+
+            <div class="flex items-center gap-6 bg-stone-50 p-4 rounded-2xl border border-stone-100">
+                <div class="hidden md:flex flex-col items-end border-r border-stone-200 pr-6">
+                    <span class="text-[10px] uppercase font-bold text-stone-400 tracking-widest">Target Strengths</span>
+                    <div class="flex gap-3 mt-1">
+                        <div class="flex flex-col items-center"><span class="text-xs font-bold" id="val-math">9</span><span class="text-[9px] text-stone-400">MATH</span></div>
+                        <div class="flex flex-col items-center"><span class="text-xs font-bold" id="val-creative">8</span><span class="text-[9px] text-stone-400">ART</span></div>
+                        <div class="flex flex-col items-center"><span class="text-xs font-bold" id="val-hands">10</span><span class="text-[9px] text-stone-400">HANDS</span></div>
+                    </div>
                 </div>
+                <button onclick="toggleProfileModal()" class="bg-stone-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-stone-700 transition-all shadow-md active:scale-95">
+                    Adjust Profile
+                </button>
             </div>
         </header>
 
-        <!-- Main Dashboard Layout -->
-        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <!-- Left Column: Filter & List -->
-            <section class="lg:col-span-1 flex flex-col gap-6">
+            <!-- SIDEBAR: LIST & SEARCH -->
+            <aside class="lg:col-span-4 flex flex-col gap-6">
                 
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 flex flex-col gap-4 h-[400px]">
-                    <div>
-                        <h2 class="text-xl font-bold text-stone-800">Program Categories</h2>
-                        <p class="text-xs text-stone-500 mt-1">Distribution of curated options by primary focus area.</p>
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-stone-200 flex flex-col gap-5">
+                    <div class="relative">
+                        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search programs or skills..." class="w-full pl-4 pr-10 py-3 border border-stone-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-[#4F7061] transition-all bg-stone-50">
+                        <span class="absolute right-4 top-3 text-stone-400">🔍</span>
                     </div>
-                    <div class="chart-container flex-grow h-full w-full">
-                        <canvas id="overviewChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden flex flex-col" style="height: 600px;">
-                    <div class="p-6 border-b border-stone-200 bg-stone-50">
-                        <h2 class="text-xl font-bold text-stone-800 mb-4">Explore Programs</h2>
-                        <div class="flex flex-wrap gap-2" id="filter-buttons">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
-                    <div class="p-4 overflow-y-auto custom-scrollbar flex-grow bg-white flex flex-col gap-3" id="program-list">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-            </section>
-
-            <!-- Right Column: Detail View -->
-            <section class="lg:col-span-2 flex flex-col gap-6">
-                
-                <div class="bg-white rounded-2xl p-8 shadow-sm border border-stone-200 h-full flex flex-col" id="detail-view">
                     
-                    <div class="flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-stone-200 pb-6 mb-6">
-                        <div>
-                            <div class="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase mb-3" id="detail-category" style="background-color: #E2E8F0; color: #475569;">
-                                Category
-                            </div>
-                            <h2 class="text-3xl font-bold text-stone-900 mb-2" id="detail-title">Select a Program</h2>
-                            <div class="text-stone-500 font-medium flex items-center gap-2">
-                                <span id="detail-location">📍 Location</span>
-                                <span>&bull;</span>
-                                <span id="detail-format">💻 Format</span>
-                            </div>
-                        </div>
-                        <div class="bg-[#F0F4F2] text-[#4F7061] px-4 py-2 rounded-lg font-medium text-sm text-center min-w-[120px]">
-                            <div class="text-xs text-stone-500 mb-1 uppercase tracking-wider">Ideal For</div>
-                            <span id="detail-ideal">...</span>
-                        </div>
-                    </div>
+                    <div class="flex flex-wrap gap-2" id="filterContainer"></div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
-                        
-                        <!-- Text Details -->
-                        <div class="flex flex-col gap-6">
-                            <div>
-                                <h3 class="text-lg font-semibold text-stone-800 mb-2">Program Overview</h3>
-                                <p class="text-stone-600 leading-relaxed" id="detail-desc">
-                                    Click on a program from the list on the left to view detailed information, format breakdown, and why it fits the student's specific profile.
-                                </p>
-                            </div>
-                            
-                            <div>
-                                <h3 class="text-lg font-semibold text-stone-800 mb-2">Why It Fits</h3>
-                                <div class="bg-[#FFF8F5] border border-[#FDEEE8] rounded-xl p-4 text-[#A84A2A]">
-                                    <p class="leading-relaxed font-medium" id="detail-why">
-                                        Analysis will appear here.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 class="text-lg font-semibold text-stone-800 mb-2 text-sm uppercase tracking-wider text-stone-500">Structure Breakdown</h3>
-                                <ul class="space-y-2 text-stone-600" id="detail-structure">
-                                    <!-- Populated by JS -->
-                                    <li class="flex items-start gap-2"><span>&#8226;</span> <span>Awaiting selection...</span></li>
-                                </ul>
-                            </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-stone-500">
+                            <input type="checkbox" id="favOnly" onchange="handleSearch()" class="w-4 h-4 rounded accent-[#4F7061]">
+                            <label for="favOnly" class="cursor-pointer">Favorites Only</label>
                         </div>
-
-                        <!-- Radar Chart -->
-                        <div class="flex flex-col items-center">
-                            <h3 class="text-lg font-semibold text-stone-800 mb-4 text-center">Profile Alignment Map</h3>
-                            <p class="text-xs text-stone-500 mb-4 text-center max-w-[250px]">Measures how the program balances different engagement styles and skills (Scale 1-10).</p>
-                            <div class="chart-container large-chart w-full flex-grow flex items-center justify-center min-h-[300px]">
-                                <canvas id="radarChart"></canvas>
-                            </div>
-                        </div>
-
+                        <span class="text-[10px] text-stone-400 uppercase font-bold tracking-tighter" id="resultCount">0 Programs Found</span>
                     </div>
                 </div>
 
-            </section>
-        </main>
+                <div class="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden flex flex-col h-[600px]">
+                    <div id="programList" class="flex-grow overflow-y-auto custom-scrollbar p-4 flex flex-col gap-4"></div>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT: DETAIL ANALYSIS -->
+            <main class="lg:col-span-8">
+                <div id="detailContainer" class="bg-white rounded-3xl p-10 shadow-sm border border-stone-200 min-h-[720px] flex flex-col items-center justify-center text-stone-400 border-dashed border-2">
+                    <div class="text-center max-w-sm">
+                        <div class="text-7xl mb-6 opacity-40">🔭</div>
+                        <h3 class="text-2xl font-bold text-stone-800 mb-2">Discovery Mode</h3>
+                        <p class="text-stone-500 leading-relaxed">Select a program from the left to analyze its curriculum, format, and alignment with your student's profile.</p>
+                    </div>
+                </div>
+            </main>
+
+        </div>
+
+        <!-- TIMELINE VIEW -->
+        <section class="bg-white rounded-3xl p-10 shadow-sm border border-stone-200 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+                <div>
+                    <h2 class="text-3xl font-bold text-stone-900">Program Availability</h2>
+                    <p class="text-stone-500 mt-1">Typical sessions running across July and August.</p>
+                </div>
+                <div class="flex items-center gap-6 px-5 py-3 bg-stone-50 rounded-2xl text-xs font-bold text-stone-600">
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 bg-[#4F7061] rounded-full"></div> Session Active</div>
+                    <div class="flex items-center gap-2"><div class="w-3 h-3 bg-stone-200 rounded-full"></div> No Sessions</div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto pb-4">
+                <div class="min-w-[900px]">
+                    <div class="grid grid-cols-12 gap-2 mb-4">
+                        <div class="col-span-4"></div>
+                        <div class="col-span-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 py-2 border-b border-stone-100">July</div>
+                        <div class="col-span-4 text-center text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 py-2 border-b border-stone-100">August</div>
+                    </div>
+                    <div id="timelineBody" class="flex flex-col gap-3"></div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- MODAL: PROFILE ADJUSTER -->
+    <div id="profileModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-md hidden flex items-center justify-center z-50 p-6">
+        <div class="bg-white rounded-3xl w-full max-w-lg p-10 shadow-2xl animate-in zoom-in duration-200">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 class="text-3xl font-bold">Personalize Analysis</h2>
+                    <p class="text-stone-500 text-sm mt-2">Adjust strengths to see how program 'Fit Scores' change.</p>
+                </div>
+                <button onclick="toggleProfileModal()" class="text-stone-300 hover:text-stone-900 text-2xl">&times;</button>
+            </div>
+            
+            <div class="space-y-8 mt-10">
+                <div>
+                    <div class="flex justify-between text-sm font-bold mb-3"><span>Math & Logical Complexity</span> <span class="bg-[#4F7061]/10 text-[#4F7061] px-2 py-0.5 rounded" id="m-val">9</span></div>
+                    <input type="range" id="m-slider" min="1" max="10" value="9" class="w-full accent-[#4F7061]" oninput="updateModalValues()">
+                </div>
+                <div>
+                    <div class="flex justify-between text-sm font-bold mb-3"><span>Creative & Artistic Flair</span> <span class="bg-[#4F7061]/10 text-[#4F7061] px-2 py-0.5 rounded" id="c-val">8</span></div>
+                    <input type="range" id="c-slider" min="1" max="10" value="8" class="w-full accent-[#4F7061]" oninput="updateModalValues()">
+                </div>
+                <div>
+                    <div class="flex justify-between text-sm font-bold mb-3"><span>Physical & Hands-on Activity</span> <span class="bg-[#4F7061]/10 text-[#4F7061] px-2 py-0.5 rounded" id="p-val">10</span></div>
+                    <input type="range" id="p-slider" min="1" max="10" value="10" class="w-full accent-[#4F7061]" oninput="updateModalValues()">
+                </div>
+            </div>
+
+            <div class="flex gap-4 mt-12">
+                <button onclick="saveProfile()" class="flex-grow bg-[#4F7061] hover:bg-[#3d564b] text-white py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95">Save & Recalculate</button>
+            </div>
+        </div>
     </div>
 
     <script>
-        // --- DATA ---
         const programs = [
-            {
-                id: "digipen",
-                title: "DigiPen ProjectFUN Academies",
-                category: "Coding & Engineering",
-                location: "Redmond, WA",
-                format: "In-Person & Online Options",
-                idealFor: "Creative Coders",
-                color: "#4F7061", // Sage
-                description: "DigiPen offers highly rigorous but engaging summer academies focused on game development, animation, and engineering. It treats students like real developers. They learn core programming (often C++ or Python) by building games, which inherently requires math, physics, and creative art/storytelling.",
-                whyItFits: "Perfectly marries her strong math/science skills with creativity. Making games is highly hands-on and keeps engagement high because the end product is fun and personal.",
-                structure: [
-                    "Instruction blocks (learning new concepts).",
-                    "Self-study/Lab time (applying concepts to their own game project).",
-                    "Peer playtesting and collaboration (feedback loops)."
-                ],
-                metrics: {
-                    mathLogic: 9,
-                    creativity: 8,
-                    handsOn: 10,
-                    selfStudy: 6,
-                    collaboration: 7
-                }
-            },
-            {
-                id: "aops",
-                title: "AoPS Academy Summer Programs",
-                category: "Math & Science",
-                location: "Bellevue, WA",
-                format: "In-Person (Hybrid prep)",
-                idealFor: "Advanced Math",
-                color: "#c05634", // Terracotta
-                description: "Art of Problem Solving (AoPS) is the gold standard for advanced math students. Their summer camps (like Math Problem Solving or Python Programming) are heavily discussion-based during class, but require rigorous independent thought to solve complex puzzles.",
-                whyItFits: "Since she is 'great at math and comprehension,' this will challenge her ceiling. It fits the requested debate-style model: students tackle tough problems independently (self-study), then come together to present and debate their solutions collaboratively.",
-                structure: [
-                    "Intense individual problem-solving prep.",
-                    "Socratic-style group discussions and whiteboard collaboration.",
-                    "High cognitive load, highly rewarding."
-                ],
-                metrics: {
-                    mathLogic: 10,
-                    creativity: 6,
-                    handsOn: 4,  // Mental hands-on, less physical
-                    selfStudy: 9,
-                    collaboration: 8
-                }
-            },
-            {
-                id: "mercer",
-                title: "Pacific Science Center @ Mercer Slough",
-                category: "Physical & Science",
-                location: "Bellevue, WA",
-                format: "In-Person (Outdoors)",
-                idealFor: "Hands-On Science",
-                color: "#6b7280", // Slate
-                description: "Environmental science camps held at the Mercer Slough Environmental Education Center. Programs focus on wetland ecology, biology, and environmental engineering. Students spend the majority of the day outdoors getting their hands dirty.",
-                whyItFits: "Addresses the 'Science' and 'Physical/Hands-on' requirements brilliantly. It pulls her away from the screen and applies scientific method and data collection to the real world.",
-                structure: [
-                    "Outdoor field research and sample collection.",
-                    "Lab analysis (microscopes, water testing).",
-                    "Group presentations on ecosystem findings."
-                ],
-                metrics: {
-                    mathLogic: 5,
-                    creativity: 6,
-                    handsOn: 10,
-                    selfStudy: 3,
-                    collaboration: 9
-                }
-            },
-            {
-                id: "idtech",
-                title: "iD Tech Camps (UW Bothell / Bellevue Col.)",
-                category: "Coding & Engineering",
-                location: "Bellevue / Bothell, WA",
-                format: "In-Person",
-                idealFor: "Tech Project Builders",
-                color: "#4F7061", // Sage
-                description: "Held on local college campuses, offering a wide array of courses from VEX Robotics to Machine Learning and 3D modeling. Small class sizes (often 8-to-1 max) ensure personalized attention.",
-                whyItFits: "Provides the 'campus experience' which is great for rising 7th graders. Extremely hands-on. If she chooses a robotics or engineering track, she'll use math/logic to build physical items and collaborate on challenges.",
-                structure: [
-                    "Project-based learning (building a specific tech product).",
-                    "Self-paced curriculum with 1-on-1 instructor check-ins.",
-                    "Dedicated outdoor physical breaks and team games."
-                ],
-                metrics: {
-                    mathLogic: 7,
-                    creativity: 8,
-                    handsOn: 9,
-                    selfStudy: 8,
-                    collaboration: 5
-                }
-            },
-            {
-                id: "edgeworks",
-                title: "Edgeworks Climbing Bellevue",
-                category: "Physical & Logic",
-                location: "Bellevue, WA",
-                format: "In-Person",
-                idealFor: "Physical Problem Solvers",
-                color: "#d97706", // Amber
-                description: "Summer climbing camps focusing on bouldering, top-rope, and climbing technique. While ostensibly just 'physical', rock climbing is heavily based on route reading, physics, and spatial problem solving.",
-                whyItFits: "Climbing is 'physical math.' You have to map a route, understand leverage, and execute. It also builds immense trust and collaboration (learning to belay and spot peers). Great screen-free physical engagement.",
-                structure: [
-                    "Warm-ups and physical conditioning.",
-                    "Route planning (spatial logic/creativity).",
-                    "Partnered climbing (high trust/collaboration)."
-                ],
-                metrics: {
-                    mathLogic: 6,
-                    creativity: 7,
-                    handsOn: 10,
-                    selfStudy: 2,
-                    collaboration: 9
-                }
-            },
-            {
-                id: "gwc",
-                title: "Girls Who Code Summer Programs",
-                category: "Coding & Engineering",
-                location: "Online (w/ Local Chapters)",
-                format: "Online Hybrid",
-                idealFor: "Collaborative Coders",
-                color: "#4F7061", // Sage
-                description: "Free summer programs for high schoolers (often accept rising 9th, but they have middle school club equivalents and self-paced programs). Focuses heavily on computer science through a lens of activism and community building.",
-                whyItFits: "If she prefers the debate-style format (meet online, prep offline), GWC uses this model heavily. They do self-guided modules, then come together online to pair-program and discuss tech impacts.",
-                structure: [
-                    "Self-paced coding modules (Python/Web).",
-                    "Live virtual collaborative workshops.",
-                    "Capstone project aiming to solve a real-world issue."
-                ],
-                metrics: {
-                    mathLogic: 8,
-                    creativity: 8,
-                    handsOn: 7,
-                    selfStudy: 9,
-                    collaboration: 8
-                }
-            }
+            { id: "digipen", title: "DigiPen ProjectFUN Academies", category: "Tech", location: "Redmond, WA", format: "In-Person", desc: "Rigorous game development where students build functional software from scratch using professional logic.", fit: "Highest logic/creative overlap. Perfect for a student who wants to see their math in action.", structure: ["80% Lab Work", "20% Theory"], availability: [1,1,1,1,1,1,1,0], metrics: { math: 9, creative: 9, physical: 2, selfStudy: 7, collab: 7 } },
+            { id: "aops", title: "AoPS Academy Bellevue", category: "Math", location: "Bellevue, WA", format: "Hybrid", desc: "Elite competitive math focus. Socratic teaching method that emphasizes strategy over mechanics.", fit: "Best for high comprehension. Prep happens independently; execution happens in group debate.", structure: ["50% Individual", "50% Debate"], availability: [0,1,0,1,0,1,0,1], metrics: { math: 10, creative: 5, physical: 1, selfStudy: 9, collab: 8 } },
+            { id: "mslough", title: "Mercer Slough Science", category: "Science", location: "Bellevue, WA", format: "In-Person", desc: "Boots-on-the-ground environmental science. Students collect real-world data in the wetlands.", fit: "Addresses physical science requirements beautifully. It's 'get your hands dirty' research.", structure: ["70% Field", "30% Lab"], availability: [1,1,1,0,0,1,1,0], metrics: { math: 6, creative: 6, physical: 10, selfStudy: 4, collab: 9 } },
+            { id: "idtech", title: "iD Tech Bellevue College", category: "Tech", location: "Bellevue, WA", format: "In-Person", desc: "Boutique coding camps on campus. Options range from AI to Minecraft engineering.", fit: "High-engagement, low-barrier entry. Great for exploring different tech niches quickly.", structure: ["90% Project", "10% Rec"], availability: [1,1,1,1,1,1,1,1], metrics: { math: 7, creative: 8, physical: 3, selfStudy: 8, collab: 5 } },
+            { id: "climb", title: "Edgeworks Climbing Camp", category: "Physical", location: "Bellevue, WA", format: "In-Person", desc: "Spatial logic through rock climbing. Understanding physics, leverage, and team trust.", fit: "Physical 'puzzle-solving.' Excellent for mental breaks that still require heavy logic and focus.", structure: ["100% Physical"], availability: [1,1,1,1,1,1,0,0], metrics: { math: 4, creative: 7, physical: 10, selfStudy: 2, collab: 10 } },
+            { id: "gwc", title: "Girls Who Code (Bellevue)", category: "Tech", location: "Hybrid Chapter", desc: "Community projects using tech for good. Strong focus on activism and collective building.", fit: "Strong peer-to-peer modality. Matches the collaborative requirement perfectly.", structure: ["40% Modules", "60% Projects"], availability: [0,0,1,1,1,1,0,0], metrics: { math: 8, creative: 8, physical: 1, selfStudy: 6, collab: 9 } }
         ];
 
-        // --- STATE ---
-        let currentFilter = 'All';
-        let activeProgramId = programs[0].id;
-        let overviewChartInstance = null;
-        let radarChartInstance = null;
+        let state = { currentFilter: 'All', searchQuery: '', favorites: new Set(), activeId: null, profile: { math: 9, creative: 8, physical: 10 } };
+        let radarChart = null;
 
-        // --- DOM ELEMENTS ---
-        const filterContainer = document.getElementById('filter-buttons');
-        const listContainer = document.getElementById('program-list');
-        
-        // Detail DOM
-        const dTitle = document.getElementById('detail-title');
-        const dCategory = document.getElementById('detail-category');
-        const dLocation = document.getElementById('detail-location');
-        const dFormat = document.getElementById('detail-format');
-        const dIdeal = document.getElementById('detail-ideal');
-        const dDesc = document.getElementById('detail-desc');
-        const dWhy = document.getElementById('detail-why');
-        const dStructure = document.getElementById('detail-structure');
+        function init() { renderFilters(); handleSearch(); renderTimeline(); }
 
-        // --- INITIALIZATION ---
-        function init() {
-            renderFilters();
-            renderList();
-            initCharts();
-            updateDetailView(programs[0]); // Load first by default
+        function toggleProfileModal() { document.getElementById('profileModal').classList.toggle('hidden'); }
+        function updateModalValues() {
+            document.getElementById('m-val').innerText = document.getElementById('m-slider').value;
+            document.getElementById('c-val').innerText = document.getElementById('c-slider').value;
+            document.getElementById('p-val').innerText = document.getElementById('p-slider').value;
         }
 
-        // --- RENDER LOGIC ---
+        function saveProfile() {
+            state.profile.math = parseInt(document.getElementById('m-slider').value);
+            state.profile.creative = parseInt(document.getElementById('c-slider').value);
+            state.profile.physical = parseInt(document.getElementById('p-slider').value);
+            ['math', 'creative', 'hands'].forEach(key => document.getElementById(`val-${key}`).innerText = state.profile[key === 'hands' ? 'physical' : key]);
+            toggleProfileModal();
+            handleSearch();
+            if (state.activeId) updateDetail(programs.find(p => p.id === state.activeId));
+        }
+
         function renderFilters() {
-            const categories = ['All', ...new Set(programs.map(p => p.category))];
-            filterContainer.innerHTML = '';
-            
-            categories.forEach(cat => {
+            const container = document.getElementById('filterContainer');
+            ['All', ...new Set(programs.map(p => p.category))].forEach(cat => {
                 const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-xl text-[10px] font-bold tracking-wider uppercase border ${state.currentFilter === cat ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-400 border-stone-200 hover:bg-stone-50'}`;
                 btn.innerText = cat;
-                btn.className = `px-4 py-1.5 rounded-full text-sm font-medium transition-colors border ${currentFilter === cat ? 'bg-stone-800 text-white border-stone-800' : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100'}`;
-                btn.onclick = () => {
-                    currentFilter = cat;
-                    renderFilters(); // re-render to update active state
-                    renderList();
-                };
-                filterContainer.appendChild(btn);
+                btn.onclick = () => { state.currentFilter = cat; renderFilters(); handleSearch(); };
+                container.appendChild(btn);
             });
         }
 
-        function renderList() {
-            listContainer.innerHTML = '';
-            const filtered = currentFilter === 'All' ? programs : programs.filter(p => p.category === currentFilter);
-            
-            filtered.forEach(p => {
-                const card = document.createElement('div');
-                const isActive = p.id === activeProgramId;
-                card.className = `program-card p-4 rounded-xl border ${isActive ? 'active border-stone-300' : 'border-stone-200 bg-white'}`;
-                card.onclick = () => {
-                    activeProgramId = p.id;
-                    renderList(); // update active styling
-                    updateDetailView(p);
-                };
-                
-                card.innerHTML = `
-                    <div class="text-xs font-semibold text-stone-500 mb-1 uppercase tracking-wider">${p.category}</div>
-                    <h3 class="text-base font-bold text-stone-800 mb-1 leading-tight">${p.title}</h3>
-                    <div class="text-sm text-stone-500 flex items-center gap-1"><span>&#x1F4CD;</span> ${p.location}</div>
-                `;
-                listContainer.appendChild(card);
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const favOnly = document.getElementById('favOnly').checked;
+            const filtered = programs.filter(p => {
+                const match = (state.currentFilter === 'All' || p.category === state.currentFilter) && (p.title.toLowerCase().includes(query) || p.desc.toLowerCase().includes(query));
+                return favOnly ? (match && state.favorites.has(p.id)) : match;
             });
+            document.getElementById('resultCount').innerText = `${filtered.length} Programs Found`;
+            renderList(filtered);
         }
 
-        function updateDetailView(p) {
-            dTitle.innerText = p.title;
-            dCategory.innerText = p.category;
-            dCategory.style.backgroundColor = p.color + '20'; // 20% opacity hex
-            dCategory.style.color = p.color;
-            dLocation.innerText = `📍 ${p.location}`;
-            dFormat.innerText = `💻 ${p.format}`;
-            dIdeal.innerText = p.idealFor;
-            dDesc.innerText = p.description;
-            dWhy.innerText = p.whyItFits;
-            
-            dStructure.innerHTML = '';
-            p.structure.forEach(item => {
-                const li = document.createElement('li');
-                li.className = "flex items-start gap-2";
-                li.innerHTML = `<span class="text-stone-400 mt-0.5">&#10140;</span> <span>${item}</span>`;
-                dStructure.appendChild(li);
-            });
-
-            updateRadarChart(p);
+        function calculateScore(p) {
+            const max = (state.profile.math * 10) + (state.profile.creative * 10) + (state.profile.physical * 10);
+            const actual = (state.profile.math * p.metrics.math) + (state.profile.creative * p.metrics.creative) + (state.profile.physical * p.metrics.physical);
+            return Math.round((actual / max) * 100);
         }
 
-        // --- CHARTS LOGIC ---
-        function initCharts() {
-            // Overview Doughnut Chart
-            const ctxDoughnut = document.getElementById('overviewChart').getContext('2d');
-            
-            // Calculate category counts
-            const counts = {};
-            programs.forEach(p => {
-                counts[p.category] = (counts[p.category] || 0) + 1;
-            });
+        function renderList(items) {
+            const list = document.getElementById('programList');
+            list.innerHTML = items.map(p => `
+                <div onclick="selectProgram('${p.id}')" class="program-card p-5 rounded-2xl border border-stone-200 bg-white relative ${state.activeId === p.id ? 'active' : ''}">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-black tracking-widest text-stone-400 uppercase">${p.category}</span>
+                        <button onclick="event.stopPropagation(); toggleFav('${p.id}')" class="text-lg">${state.favorites.has(p.id) ? '⭐' : '☆'}</button>
+                    </div>
+                    <h3 class="font-bold text-stone-800 text-sm">${p.title}</h3>
+                    <div class="flex items-center justify-between mt-4">
+                        <span class="text-[10px] text-stone-400 font-bold uppercase">${p.location.split(',')[0]}</span>
+                        <span class="bg-[#4F7061]/10 text-[#4F7061] text-[10px] font-black px-2 py-0.5 rounded-md">${calculateScore(p)}% MATCH</span>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-            overviewChartInstance = new Chart(ctxDoughnut, {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(counts),
-                    datasets: [{
-                        data: Object.values(counts),
-                        backgroundColor: ['#4F7061', '#c05634', '#6b7280', '#d97706'],
-                        borderWidth: 0,
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                font: { family: "'Inter', sans-serif", size: 12 },
-                                color: '#57534e'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(28, 25, 23, 0.9)',
-                            titleFont: { family: "'Inter', sans-serif", size: 13 },
-                            bodyFont: { family: "'Inter', sans-serif", size: 13 },
-                            padding: 10,
-                            cornerRadius: 8
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
+        function toggleFav(id) { state.favorites.has(id) ? state.favorites.delete(id) : state.favorites.add(id); handleSearch(); }
 
-            // Initialize empty radar chart
-            const ctxRadar = document.getElementById('radarChart').getContext('2d');
-            radarChartInstance = new Chart(ctxRadar, {
+        function selectProgram(id) { state.activeId = id; handleSearch(); updateDetail(programs.find(p => p.id === id)); }
+
+        function updateDetail(p) {
+            const container = document.getElementById('detailContainer');
+            container.className = "bg-white rounded-3xl p-10 shadow-sm border border-stone-200 min-h-[720px] flex flex-col items-start justify-start animate-in fade-in duration-500";
+            container.innerHTML = `
+                <div class="w-full">
+                    <div class="flex flex-col md:flex-row justify-between items-start gap-6 border-b border-stone-100 pb-8 mb-8">
+                        <div class="max-w-xl">
+                            <span class="bg-[#4F7061] text-white text-[10px] font-black tracking-widest px-3 py-1 rounded-full uppercase">${p.category} Curriculum</span>
+                            <h2 class="text-4xl font-bold text-stone-900 mt-4 leading-tight">${p.title}</h2>
+                            <p class="text-stone-500 mt-3 font-medium flex items-center gap-3">📍 ${p.location} <span class="text-stone-300">|</span> 💻 ${p.format}</p>
+                        </div>
+                        <div class="bg-stone-900 text-white px-8 py-6 rounded-[2rem] text-center shadow-xl shadow-stone-200">
+                            <div class="text-[10px] font-black tracking-widest uppercase text-stone-400 mb-1">Match Score</div>
+                            <div class="text-4xl font-black">${calculateScore(p)}%</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div class="space-y-8">
+                            <div><h4 class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Core Program Analysis</h4><p class="text-stone-700 leading-relaxed">${p.desc}</p></div>
+                            <div class="bg-[#FFF8F5] border border-[#FDEEE8] p-6 rounded-3xl"><h4 class="text-xs font-bold text-[#A84A2A] mb-2 uppercase tracking-wide">Strategic Fit</h4><p class="text-[#A84A2A] text-sm leading-relaxed font-medium italic">${p.fit}</p></div>
+                            <div><h4 class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-3">Engagement Mix</h4><div class="flex flex-wrap gap-2">${p.structure.map(s => `<span class="bg-stone-100 px-4 py-2 rounded-xl text-xs font-bold text-stone-600">${s}</span>`).join('')}</div></div>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <h4 class="text-[10px] font-black uppercase tracking-widest text-stone-400 mb-8">Attribute Alignment Map</h4>
+                            <div class="chart-container"><canvas id="radarChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>`;
+            initRadar(p);
+        }
+
+        function initRadar(p) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            if (radarChart) radarChart.destroy();
+            radarChart = new Chart(ctx, {
                 type: 'radar',
                 data: {
-                    labels: ['Math/Logic', 'Creativity', 'Hands-On Activity', 'Self-Study/Prep', 'Collaboration/Teamwork'],
-                    datasets: [{
-                        label: 'Program Alignment',
-                        data: [0, 0, 0, 0, 0],
-                        backgroundColor: 'rgba(79, 112, 97, 0.2)', // Sage transparent
-                        borderColor: '#4F7061',
-                        pointBackgroundColor: '#c05634', // Terracotta points
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#c05634',
-                        borderWidth: 2
-                    }]
+                    labels: ['Math Complexity', 'Creative Flair', 'Physical Activity', 'Self Study', 'Collaboration'],
+                    datasets: [
+                        { label: 'Student Baseline', data: [state.profile.math, state.profile.creative, state.profile.physical, 8, 8], borderColor: '#A84A2A', backgroundColor: 'transparent', borderDash: [4, 4], pointRadius: 0, borderWidth: 1.5 },
+                        { label: 'Program Offering', data: [p.metrics.math, p.metrics.creative, p.metrics.physical, p.metrics.selfStudy, p.metrics.collab], borderColor: '#4F7061', backgroundColor: 'rgba(79, 112, 97, 0.2)', pointRadius: 5, pointBackgroundColor: '#4F7061', borderWidth: 3 }
+                    ]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
-                            grid: { color: 'rgba(0, 0, 0, 0.1)' },
-                            pointLabels: {
-                                font: { family: "'Inter', sans-serif", size: 11, weight: '500' },
-                                color: '#444'
-                            },
-                            ticks: {
-                                display: false,
-                                min: 0,
-                                max: 10,
-                                stepSize: 2
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(28, 25, 23, 0.9)',
-                            callbacks: {
-                                label: function(context) {
-                                    return `Score: ${context.raw} / 10`;
-                                }
-                            }
-                        }
-                    }
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    scales: { r: { min: 0, max: 10, ticks: { display: false }, pointLabels: { font: { size: 10, weight: '900', family: 'Inter' }, color: '#a8a29e' } } },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
 
-        function updateRadarChart(program) {
-            if (!radarChartInstance) return;
-            
-            radarChartInstance.data.datasets[0].data = [
-                program.metrics.mathLogic,
-                program.metrics.creativity,
-                program.metrics.handsOn,
-                program.metrics.selfStudy,
-                program.metrics.collaboration
-            ];
-            
-            // Dynamically match chart color to program category color
-            radarChartInstance.data.datasets[0].borderColor = program.color;
-            radarChartInstance.data.datasets[0].backgroundColor = program.color + '33'; // 20% opacity
-            
-            radarChartInstance.update();
+        function renderTimeline() {
+            document.getElementById('timelineBody').innerHTML = programs.map(p => `
+                <div class="grid grid-cols-12 gap-2 items-center hover:bg-stone-50 p-2 rounded-xl transition-colors">
+                    <div class="col-span-4 text-[11px] font-black text-stone-700 truncate pr-4">${p.title}</div>
+                    ${p.availability.map(active => `<div class="h-8 rounded-lg border border-stone-100 flex items-center justify-center text-[10px] ${active ? 'timeline-active' : 'bg-white shadow-inner'}">${active ? '✓' : ''}</div>`).join('')}
+                </div>
+            `).join('');
         }
 
-        // Run
-        document.addEventListener('DOMContentLoaded', init);
+        window.onload = init;
     </script>
 </body>
 </html>
